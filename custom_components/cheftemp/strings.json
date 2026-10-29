@@ -1,0 +1,110 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "menu_options": {
+          "scan": "Find on the network",
+          "manual": "Enter MAC"
+        }
+      },
+      "scan": {
+        "title": "ProTemp S1",
+        "description": "Found {count} on the network. Choose which thermometer to add.",
+        "data": {
+          "mac": "Thermometer"
+        }
+      },
+      "manual": {
+        "title": "ProTemp S1",
+        "description": "MAC is on the sticker under the thermometer, or in the router's client list. Colons are fine.",
+        "data": {
+          "mac": "MAC"
+        }
+      },
+      "discovery_confirm": {
+        "title": "ProTemp S1",
+        "description": "Thermometer {mac} is online. Temperatures are already in the ChefsTemp cloud. Add it to Home Assistant?"
+      }
+    },
+    "error": {
+      "bad_mac": "Enter 12 hex digits. Colons are fine.",
+      "no_data": "No frames from this MAC. The thermometer must be on and connected to Wi-Fi.",
+      "cannot_connect": "The ChefsTemp cloud broker did not answer."
+    },
+    "abort": {
+      "already_configured": "This thermometer is already added.",
+      "already_added": "Thermometer {mac} is already in Home Assistant. Delete it first if you want to add it again.",
+      "no_devices_found": "No thermometer answered on the network. Enter the MAC instead.",
+      "not_chefstemp_device": "This device is not sending ProTemp frames.",
+      "cannot_connect": "The ChefsTemp cloud broker did not answer."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "dome": {
+        "name": "ambient"
+      },
+      "fan": {
+        "name": "Fan",
+        "state": {
+          "offline": "Offline",
+          "slow": "Slow",
+          "fast": "Fast",
+          "paused": "Paused",
+          "stopped": "Stopped"
+        }
+      },
+      "battery": {
+        "name": "Battery"
+      },
+      "channel": {
+        "name": "CH{slot}"
+      },
+      "channel_tip": {
+        "name": "CH{slot}.t{n}"
+      },
+      "channel_ambient": {
+        "name": "CH{slot}.ambient"
+      },
+      "channel_battery": {
+        "name": "CH{slot}.battery"
+      }
+    },
+    "number": {
+      "setpoint": {
+        "name": "Setpoint"
+      },
+      "timer": {
+        "name": "Timer"
+      },
+      "maximum": {
+        "name": "Maximum"
+      },
+      "minimum": {
+        "name": "Minimum"
+      }
+    },
+    "switch": {
+      "alarm": {
+        "name": "Alarm"
+      }
+    },
+    "select": {
+      "mode": {
+        "name": "Mode",
+        "state": {
+          "temperature": "Temperature",
+          "timer": "Timer",
+          "off": "Off"
+        }
+      },
+      "speed": {
+        "name": "Speed",
+        "state": {
+          "fast": "Fast",
+          "slow": "Slow"
+        }
+      }
+    }
+  }
+}

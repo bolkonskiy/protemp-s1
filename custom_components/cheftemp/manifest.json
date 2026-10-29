@@ -1,0 +1,19 @@
+{
+  "domain": "cheftemp",
+  "name": "ProTemp S1",
+  "codeowners": [
+    "@bolkonskiy"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/bolkonskiy/protemp-s1",
+  "issue_tracker": "https://github.com/bolkonskiy/protemp-s1/issues",
+  "integration_type": "device",
+  "iot_class": "cloud_push",
+  "dhcp": [
+    {
+      "macaddress": "74E9D8*"
+    }
+  ],
+  "requirements": [],
+  "version": "1.2.7"
+}
