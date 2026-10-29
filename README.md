@@ -40,6 +40,16 @@ Scan the LAN or type the MAC from the sticker on the bottom. Discovery broadcast
 
 Probe channel entities are unavailable when that probe is offline.
 
+## Lovelace card
+
+The integration registers `custom:protemp-s1-card` on startup. After a restart it appears under **Add card → ProTemp S1**. You do not add a Lovelace resource by hand.
+
+```yaml
+type: custom:protemp-s1-card
+```
+
+If there is more than one grill, pick the device in the card editor.
+
 ## License
 
 MIT

@@ -12,8 +12,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.typing import ConfigType
 
 from .const import (
     DEFAULT_HOST,
@@ -23,8 +24,11 @@ from .const import (
     PLATFORMS,
     S1_FAN_IDX,
 )
+from .frontend import async_register_frontend
 from .link import CloudLink
 from .protocol import FanRun, FanSetting, Probe, alarm_frame, fan_state, limit_frame, parse_stream
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _LOGGER = logging.getLogger(__name__)
 _UNSET = {"unknown", "unavailable", "none", ""}
@@ -287,8 +291,15 @@ class ChefTempHub:
             update()
 
 
+async def async_setup(hass: HomeAssistant, _config: ConfigType) -> bool:
+    """Карточка должна быть ещё до первой записи S1."""
+    await async_register_frontend(hass)
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Подключить один S1."""
+    await async_register_frontend(hass)
     mac = str(entry.data["mac"]).upper()
     _migrate_entity_ids(hass, mac)
     hub = ChefTempHub(hass, entry)
