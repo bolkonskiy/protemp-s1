@@ -1,9 +1,9 @@
 (() => {
   const CARD = "protemp-s1-card";
   const MODES = [
-    ["timer", "Timer"],
-    ["off", "Off"],
     ["temperature", "Temperature"],
+    ["off", "Off"],
+    ["timer", "Timer"],
   ];
   const FAN = {
     offline: "Offline",
@@ -39,8 +39,7 @@
 
   function cheftempDeviceIds(hass) {
     const ids = new Set();
-    const entities = hass.entities || {};
-    Object.values(entities).forEach((meta) => {
+    Object.values(hass.entities || {}).forEach((meta) => {
       if (meta && meta.platform === "cheftemp" && meta.device_id) ids.add(meta.device_id);
     });
     return [...ids];
@@ -48,8 +47,7 @@
 
   function mapEntities(hass, deviceId) {
     const out = { tips: { 1: {}, 2: {}, 3: {}, 4: {} }, probe: {}, probeAmbient: {}, probeBattery: {} };
-    const entities = hass.entities || {};
-    Object.entries(entities).forEach(([entityId, meta]) => {
+    Object.entries(hass.entities || {}).forEach(([entityId, meta]) => {
       if (!meta || meta.device_id !== deviceId) return;
       const hit = classify(entityId);
       if (!hit) return;
@@ -81,12 +79,15 @@
     return `${m}:${String(r).padStart(2, "0")}`;
   }
 
-  function circleClass(value) {
-    if (value === null) return "dot empty";
-    if (value < 40) return "dot cool";
-    if (value < 60) return "dot warm";
-    if (value < 80) return "dot hot";
-    return "dot fire";
+  function circleClass(value, extra) {
+    const bits = ["dot"];
+    if (extra) bits.push(extra);
+    if (value === null) bits.push("empty");
+    else if (value < 40) bits.push("cool");
+    else if (value < 60) bits.push("warm");
+    else if (value < 80) bits.push("hot");
+    else bits.push("fire");
+    return bits.join(" ");
   }
 
   function circleLabel(value) {
@@ -97,34 +98,94 @@
   const CSS = `
     :host { display: block; }
     ha-card { padding: 16px 18px 18px; }
+    button {
+      appearance: none;
+      -webkit-appearance: none;
+      font: inherit;
+      color: inherit;
+      margin: 0;
+      background: transparent;
+      box-sizing: border-box;
+    }
     .empty { padding: 24px 8px; text-align: center; color: var(--secondary-text-color); }
-    .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+    .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
     .name { font-size: 0.95rem; font-weight: 600; }
-    .meta { display: flex; gap: 10px; color: var(--secondary-text-color); font-size: 0.85rem; }
-    .hero { text-align: center; padding: 4px 0 2px; }
+    .pack { color: var(--secondary-text-color); font-size: 0.85rem; }
+    .hero { text-align: center; padding: 6px 0 0; }
     .now { font-size: 4.4rem; font-weight: 300; letter-spacing: -0.06em; line-height: 1; }
     .hint { margin-top: 4px; color: var(--secondary-text-color); font-size: 0.95rem; }
-    .control { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 14px 0 16px; min-height: 52px; }
-    .step { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--divider-color); background: transparent; color: var(--primary-text-color); font-size: 1.4rem; line-height: 1; cursor: pointer; }
+    .fan {
+      margin-top: 10px;
+      font-size: 1.55rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      line-height: 1.1;
+    }
+    .fan.muted { color: var(--secondary-text-color); font-weight: 400; }
+    .speed { display: block; margin-top: 2px; font-size: 0.8rem; font-weight: 400; color: var(--secondary-text-color); letter-spacing: 0; }
+    .control { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 16px 0 14px; min-height: 52px; }
+    .step {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      padding: 0;
+      border-radius: 50%;
+      border: 1px solid var(--divider-color);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      line-height: 1;
+      cursor: pointer;
+    }
     .step:disabled { opacity: 0.35; cursor: default; }
     .value { min-width: 5.5rem; text-align: center; font-size: 1.8rem; font-weight: 500; }
     .off-label { color: var(--secondary-text-color); font-size: 1.2rem; }
-    .modes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 18px; }
-    .mode { border: 1px solid var(--divider-color); background: transparent; color: var(--primary-text-color); border-radius: 22px; padding: 10px 8px; font: inherit; font-size: 0.9rem; cursor: pointer; }
-    .mode.on { background: var(--primary-text-color); color: var(--card-background-color, var(--ha-card-background, #fff)); border-color: var(--primary-text-color); }
+    .modes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+    .mode {
+      border: 1px solid var(--divider-color);
+      border-radius: 999px;
+      padding: 11px 10px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .mode.on {
+      background: var(--primary-text-color);
+      color: var(--card-background-color, var(--ha-card-background, #fff));
+      border-color: var(--primary-text-color);
+    }
     .mode:disabled { opacity: 0.35; cursor: default; }
-    .probes { display: flex; flex-direction: column; gap: 10px; }
-    .probe { display: grid; grid-template-columns: 2.4rem 1fr auto; align-items: center; gap: 8px; }
-    .slot { font-size: 0.8rem; font-weight: 600; color: var(--secondary-text-color); }
-    .dots { display: flex; gap: 6px; justify-content: space-between; }
-    .dot { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.68rem; font-weight: 600; background: color-mix(in srgb, var(--disabled-text-color) 18%, transparent); color: var(--secondary-text-color); }
+    .probes { display: flex; flex-direction: column; gap: 14px; }
+    .probe { display: flex; flex-direction: column; gap: 6px; }
+    .probe-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .slot { font-size: 0.85rem; font-weight: 700; }
+    .batt { font-size: 0.8rem; color: var(--secondary-text-color); }
+    .stats { display: flex; gap: 14px; }
+    .stat { display: flex; flex-direction: column; gap: 1px; }
+    .stat span { font-size: 0.68rem; text-transform: lowercase; letter-spacing: 0.04em; color: var(--secondary-text-color); }
+    .stat b { font-size: 0.95rem; font-weight: 600; }
+    .shaft { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 6px; }
+    .end { font-size: 0.65rem; letter-spacing: 0.04em; text-transform: lowercase; color: var(--secondary-text-color); }
+    .dots { display: flex; gap: 5px; justify-content: space-between; }
+    .dot {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 600;
+      background: color-mix(in srgb, var(--disabled-text-color) 18%, transparent);
+      color: var(--secondary-text-color);
+    }
     .dot.empty { background: color-mix(in srgb, var(--disabled-text-color) 12%, transparent); }
     .dot.cool { background: color-mix(in srgb, #5b8def 28%, var(--ha-card-background, transparent)); color: var(--primary-text-color); }
     .dot.warm { background: color-mix(in srgb, #e0a106 32%, var(--ha-card-background, transparent)); color: var(--primary-text-color); }
     .dot.hot { background: color-mix(in srgb, #e26a2c 38%, var(--ha-card-background, transparent)); color: var(--primary-text-color); }
     .dot.fire { background: color-mix(in srgb, #d73728 42%, var(--ha-card-background, transparent)); color: var(--primary-text-color); }
-    .min { min-width: 2.6rem; text-align: right; font-size: 0.9rem; font-weight: 600; }
-    .min.off { color: var(--secondary-text-color); font-weight: 500; font-size: 0.8rem; }
+    .dot.handle { outline: 1px dashed color-mix(in srgb, var(--secondary-text-color) 45%, transparent); outline-offset: 1px; }
+    .probe.off .stat b, .probe.off .batt { color: var(--secondary-text-color); font-weight: 500; }
   `;
 
   class ProtempS1Card extends HTMLElement {
@@ -147,11 +208,11 @@
     }
 
     getCardSize() {
-      return 8;
+      return 9;
     }
 
     getGridOptions() {
-      return { columns: 12, min_rows: 7 };
+      return { columns: 12, min_rows: 8 };
     }
 
     _build() {
@@ -159,7 +220,6 @@
       const style = document.createElement("style");
       style.textContent = CSS;
       const card = document.createElement("ha-card");
-      this._card = card;
       this._empty = document.createElement("div");
       this._empty.className = "empty";
       this._body = document.createElement("div");
@@ -168,12 +228,9 @@
       top.className = "top";
       this._name = document.createElement("div");
       this._name.className = "name";
-      this._meta = document.createElement("div");
-      this._meta.className = "meta";
-      this._battery = document.createElement("span");
-      this._fan = document.createElement("span");
-      this._meta.append(this._battery, this._fan);
-      top.append(this._name, this._meta);
+      this._pack = document.createElement("div");
+      this._pack.className = "pack";
+      top.append(this._name, this._pack);
 
       const hero = document.createElement("div");
       hero.className = "hero";
@@ -181,7 +238,13 @@
       this._now.className = "now";
       this._hint = document.createElement("div");
       this._hint.className = "hint";
-      hero.append(this._now, this._hint);
+      this._fan = document.createElement("div");
+      this._fan.className = "fan";
+      this._fanLabel = document.createElement("span");
+      this._speed = document.createElement("span");
+      this._speed.className = "speed";
+      this._fan.append(this._fanLabel, this._speed);
+      hero.append(this._now, this._hint, this._fan);
 
       const control = document.createElement("div");
       control.className = "control";
@@ -221,29 +284,61 @@
       for (let slot = 1; slot <= 4; slot += 1) {
         const row = document.createElement("div");
         row.className = "probe";
+        const head = document.createElement("div");
+        head.className = "probe-head";
         const name = document.createElement("div");
         name.className = "slot";
         name.textContent = `CH${slot}`;
+        const batt = document.createElement("div");
+        batt.className = "batt";
+        head.append(name, batt);
+
+        const stats = document.createElement("div");
+        stats.className = "stats";
+        const min = this._stat("min");
+        const amb = this._stat("amb");
+        stats.append(min.wrap, amb.wrap);
+
+        const shaft = document.createElement("div");
+        shaft.className = "shaft";
+        const tip = document.createElement("span");
+        tip.className = "end";
+        tip.textContent = "tip";
         const dots = document.createElement("div");
         dots.className = "dots";
         const circles = [];
-        for (let tip = 1; tip <= 5; tip += 1) {
+        for (let n = 1; n <= 5; n += 1) {
           const dot = document.createElement("div");
           dot.className = "dot empty";
           dots.append(dot);
           circles.push(dot);
         }
-        const min = document.createElement("div");
-        min.className = "min";
-        row.append(name, dots, min);
+        const tail = document.createElement("span");
+        tail.className = "end";
+        tail.textContent = "tail";
+        const handle = document.createElement("div");
+        handle.className = "dot handle empty";
+        shaft.append(tip, dots, tail, handle);
+
+        row.append(head, stats, shaft);
         this._probes.append(row);
-        this._probeRow[slot] = { circles, min };
+        this._probeRow[slot] = { row, batt, min, amb, circles, handle };
       }
 
       this._body.append(top, hero, control, modes, this._probes);
       card.append(this._empty, this._body);
       this.shadowRoot.append(style, card);
       this._root = true;
+    }
+
+    _stat(label) {
+      const wrap = document.createElement("div");
+      wrap.className = "stat";
+      const name = document.createElement("span");
+      name.textContent = label;
+      const value = document.createElement("b");
+      wrap.append(name, value);
+      return { wrap, value };
     }
 
     _deviceId() {
@@ -274,9 +369,15 @@
       const device = (this._hass.devices || {})[deviceId];
       this._name.textContent = (device && (device.name_by_user || device.name)) || "ProTemp S1";
       const battery = num(this._state(ids.battery));
-      this._battery.textContent = battery === null ? "Battery —" : `Battery ${battery}%`;
+      this._pack.textContent = battery === null ? "Battery —" : `${battery}%`;
       const fan = this._state(ids.fan);
-      this._fan.textContent = fan && FAN[fan.state] ? FAN[fan.state] : "Fan —";
+      const fanKey = fan && FAN[fan.state] ? fan.state : null;
+      this._fan.className = fanKey && fanKey !== "offline" ? "fan" : "fan muted";
+      this._fanLabel.textContent = fanKey ? FAN[fanKey] : "Fan —";
+      const speed = this._state(ids.speed);
+      const showSpeed = fanKey && fanKey !== "offline" && speed && (speed.state === "fast" || speed.state === "slow");
+      this._speed.textContent = showSpeed ? (speed.state === "fast" ? "Fast airflow" : "Slow airflow") : "";
+      this._speed.hidden = !showSpeed;
       const dome = num(this._state(ids.dome));
       this._now.textContent = fmtTemp(dome, 0);
       const modeState = this._state(ids.mode);
@@ -309,20 +410,21 @@
       for (let slot = 1; slot <= 4; slot += 1) {
         const row = this._probeRow[slot];
         const minVal = num(this._state(ids.probe[slot]));
+        const ambVal = num(this._state(ids.probeAmbient[slot]));
+        const battVal = num(this._state(ids.probeBattery[slot]));
         const online = minVal !== null;
+        row.row.classList.toggle("off", !online);
+        row.batt.textContent = online && battVal !== null ? `${Math.round(battVal)}%` : "—";
+        row.min.value.textContent = online ? fmtTemp(minVal, 1) : "—";
+        row.amb.value.textContent = online ? fmtTemp(ambVal, 0) : "—";
         for (let tip = 1; tip <= 5; tip += 1) {
           const value = online ? num(this._state(ids.tips[slot][tip])) : null;
           const dot = row.circles[tip - 1];
           dot.className = circleClass(value);
           dot.textContent = circleLabel(value);
         }
-        if (online) {
-          row.min.className = "min";
-          row.min.textContent = fmtTemp(minVal, 1);
-        } else {
-          row.min.className = "min off";
-          row.min.textContent = "offline";
-        }
+        row.handle.className = circleClass(online ? ambVal : null, "handle");
+        row.handle.textContent = online ? circleLabel(ambVal) : "";
       }
     }
 
@@ -383,10 +485,7 @@
       this._form.hass = this._hass;
       this._form.data = this._config;
       this._form.schema = [
-        {
-          name: "device",
-          selector: { device: { integration: "cheftemp" } },
-        },
+        { name: "device", selector: { device: { integration: "cheftemp" } } },
       ];
       this._form.computeLabel = (schema) => (schema.name === "device" ? "ProTemp S1" : schema.name);
     }
@@ -398,7 +497,7 @@
   window.customCards.push({
     type: CARD,
     name: "ProTemp S1",
-    description: "Dome, mode, setpoint or timer, and four probes.",
+    description: "Dome, fan, mode, and four probes from tip to tail.",
     preview: true,
   });
 })();
