@@ -251,7 +251,8 @@ def _parse_frame(frame: bytes) -> Parsed | None:
         opcode = frame[5]
         payload = frame[7:-1]
         if opcode == 0x71 and payload:
-            return Parsed(dome_c=payload[-1])
+            raw = payload[-2:] if len(payload) >= 2 else payload
+            return Parsed(dome_c=int.from_bytes(raw, "big"))
         probe = parse_probe(opcode, payload)
         if probe is not None:
             return Parsed(probe=probe)
