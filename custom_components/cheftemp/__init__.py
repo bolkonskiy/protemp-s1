@@ -251,7 +251,7 @@ class ChefTempHub:
         buf = self._bufs.setdefault(topic, bytearray())
         buf.extend(payload)
         for item in parse_stream(buf):
-            if item.dome_c is not None and not topic.endswith("/down"):
+            if item.dome_report and not topic.endswith("/down"):
                 self.dome_c = item.dome_c
                 self.dome_at = datetime.now(timezone.utc)
                 _LOGGER.debug("Купол %s °C", self.dome_c)

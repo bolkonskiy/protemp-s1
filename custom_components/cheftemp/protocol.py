@@ -181,6 +181,7 @@ def parse_probe(opcode: int, payload: bytes) -> Probe | None:
 @dataclass
 class Parsed:
     dome_c: int | None = None
+    dome_report: bool = False
     fan: FanSetting | None = None
     fan_run: FanRun | None = None
     limit_min_c: int | None = None
@@ -251,8 +252,11 @@ def _parse_frame(frame: bytes) -> Parsed | None:
         opcode = frame[5]
         payload = frame[7:-1]
         if opcode == 0x71 and payload:
-            raw = payload[-2:] if len(payload) >= 2 else payload
-            return Parsed(dome_c=int.from_bytes(raw, "big"))
+            raw_bytes = payload[-2:] if len(payload) >= 2 else payload
+            return Parsed(
+                dome_report=True,
+                dome_c=_celsius_int(int.from_bytes(raw_bytes, "big")),
+            )
         probe = parse_probe(opcode, payload)
         if probe is not None:
             return Parsed(probe=probe)
